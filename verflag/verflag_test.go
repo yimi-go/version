@@ -10,7 +10,7 @@ import (
 )
 
 func TestVersionValue_IsBoolFlag(t *testing.T) {
-	var v versionValue
+	var v VersionValue
 	if !v.IsBoolFlag() {
 		t.Errorf("IsBoolFlag() should return true")
 	}
@@ -20,10 +20,10 @@ func Test_versionValue_Get(t *testing.T) {
 	vt := VersionTrue
 	vf := VersionFalse
 	vr := VersionRaw
-	var vn *versionValue = nil
+	var vn *VersionValue = nil
 	tests := []struct {
 		name string
-		v    *versionValue
+		v    *VersionValue
 		want interface{}
 	}{
 		{
@@ -63,7 +63,7 @@ func Test_versionValue_Set(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		v       versionValue
+		v       VersionValue
 		args    args
 		wantErr bool
 	}{
@@ -105,14 +105,14 @@ func Test_versionValue_String(t *testing.T) {
 	vt := VersionTrue
 	vf := VersionFalse
 	vr := VersionRaw
-	var vo versionValue
+	var vo VersionValue
 	for vo >= vt && vo <= vr {
-		vo = versionValue(rand.Int())
+		vo = VersionValue(rand.Int())
 	}
-	var vn *versionValue = nil
+	var vn *VersionValue = nil
 	tests := []struct {
 		name string
-		v    *versionValue
+		v    *VersionValue
 		want string
 	}{
 		{
@@ -151,7 +151,7 @@ func Test_versionValue_String(t *testing.T) {
 }
 
 func TestVersionValue_Type(t *testing.T) {
-	v := versionValue(rand.Int())
+	v := VersionValue(rand.Int())
 	if got := v.Type(); got != "version" {
 		t.Errorf("Type() = %v, want %v", got, "version")
 	}
