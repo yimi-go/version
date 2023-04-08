@@ -1,0 +1,17 @@
+     {{/*gotype:github.com/yimi-go/version.Info*/ -}}
+     version: {{ .Version }}
+{{- if ne .VCS "" }}
+         vcs: {{ .VCS }}
+{{- end -}}
+{{- if  ne .Revision "" }}
+vcs.revision: {{ .Revision }}
+{{- end -}}
+{{- if ne .BuildTime "" }}
+  build-time: {{ .BuildTime }}
+{{- end -}}
+{{- if ne .VCSModified "" }}
+vcs.modified: {{ .VCSModified }}
+{{- end }}
+  go-version: {{ .GoVersion }}
+    compiler: {{ .Compiler }}
+    platform: {{.Platform }}

@@ -3,48 +3,34 @@ package version
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"text/template"
-)
-
-var (
-	// GitVersion is semantic version.
-	GitVersion = "v0.0.0-master+$Format:%h$"
-	// BuildDate in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ').
-	BuildDate = "1970-01-01T00:00:00Z"
-	// GitCommit is sha1 for git, output of $(git rev-parse HEAD).
-	GitCommit = "$Format:%H$"
-	// GitTreeState is state of git tree, either "clean" or "dirty".
-	GitTreeState = ""
 )
 
 // Info contains versioning information.
 type Info struct {
-	GitVersion   string `json:"gitVersion"`
-	GitCommit    string `json:"gitCommit"`
-	GitTreeState string `json:"gitTreeState"`
-	BuildDate    string `json:"buildDate"`
-	GoVersion    string `json:"goVersion"`
-	Compiler     string `json:"compiler"`
-	Platform     string `json:"platform"`
+	Version     string `json:"version,omitempty"`
+	VCS         string `json:"vcs,omitempty"`
+	Revision    string `json:"revision,omitempty"`
+	BuildTime   string `json:"build_time,omitempty"`
+	VCSModified string `json:"vcs_modified,omitempty"`
+	GoVersion   string `json:"go_version"`
+	Compiler    string `json:"compiler"`
+	Platform    string `json:"platform"`
 }
 
-// language=GoTemplate
-const tableTemplate = `  gitVersion: {{.GitVersion}}
-   gitCommit: {{.GitCommit}}
-gitTreeState: {{.GitTreeState}}
-   buildDate: {{.BuildDate}}
-   goVersion: {{.GoVersion}}
-    compiler: {{.Compiler}}
-    platform: {{.Platform}}`
+//go:embed table.gohtml
+var tableTemplate string
 
 // String returns info as a human-friendly version string.
 func (info Info) String() string {
 	buf := &bytes.Buffer{}
 	// I'm sure it would not return an error.
-	tmpl, _ := template.New("version").Parse(tableTemplate)
+	tmpl := template.Must(template.New("version").Parse(tableTemplate))
 	_ = tmpl.Execute(buf, info)
 	return buf.String()
 }
@@ -56,16 +42,55 @@ func (info Info) ToJSON() string {
 	return string(s)
 }
 
+type version struct {
+	BuildInfoReader func() (info *debug.BuildInfo, ok bool)
+}
+
 // Get returns the overall codebase version. It's for detecting
 // what code a binary was built from.
-func Get() Info {
-	return Info{
-		GitVersion:   GitVersion,
-		GitCommit:    GitCommit,
-		GitTreeState: GitTreeState,
-		BuildDate:    BuildDate,
-		GoVersion:    runtime.Version(),
-		Compiler:     runtime.Compiler,
-		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+func (v *version) Get() Info {
+	info, ok := v.BuildInfoReader()
+	if !ok {
+		return Info{
+			Version:     "unknown",
+			VCS:         "unknown",
+			Revision:    "unknown",
+			BuildTime:   "unknown",
+			VCSModified: "unknown",
+			GoVersion:   runtime.Version(),
+			Compiler:    runtime.Compiler,
+			Platform:    fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		}
 	}
+	var vcs, revision, buildTime, modified string
+	for i := range info.Settings {
+		switch info.Settings[i].Key {
+		case "vcs":
+			vcs = info.Settings[i].Value
+		case "vcs.revision":
+			revision = info.Settings[i].Value
+		case "vcs.time":
+			buildTime = info.Settings[i].Value
+		case "vcs.modified":
+			modified = info.Settings[i].Value
+		}
+	}
+	return Info{
+		Version:     info.Main.Version,
+		VCS:         vcs,
+		Revision:    revision,
+		BuildTime:   buildTime,
+		VCSModified: modified,
+		GoVersion:   runtime.Version(),
+		Compiler:    runtime.Compiler,
+		Platform:    fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+	}
+}
+
+var defaultVersion = &version{
+	BuildInfoReader: debug.ReadBuildInfo,
+}
+
+func Get() Info {
+	return defaultVersion.Get()
 }
